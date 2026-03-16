@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StaffingOS — Plataforma Financiera-Operativa</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #f1f5f9; }
+  .sidebar { width: 240px; min-height: 100vh; background: #0f172a; }
+  .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 8px; cursor: pointer; color: #94a3b8; font-size: 14px; font-weight: 500; transition: all .15s; margin: 2px 8px; }
+  .sidebar-link:hover { background: #1e293b; color: #e2e8f0; }
+  .sidebar-link.active { background: #1d4ed8; color: #fff; }
+  .sidebar-link svg { flex-shrink: 0; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; }
+  .kpi-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; }
+  .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .badge-green { background: #dcfce7; color: #16a34a; }
+  .badge-yellow { background: #fef9c3; color: #ca8a04; }
+  .badge-red { background: #fee2e2; color: #dc2626; }
+  .badge-blue { background: #dbeafe; color: #1d4ed8; }
+  .badge-purple { background: #f3e8ff; color: #9333ea; }
+  .badge-gray { background: #f1f5f9; color: #64748b; }
+  .badge-orange { background: #ffedd5; color: #ea580c; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+  .btn-primary { background: #1d4ed8; color: #fff; }
+  .btn-primary:hover { background: #1e40af; }
+  .btn-secondary { background: #f1f5f9; color: #374151; border: 1px solid #e2e8f0; }
+  .btn-secondary:hover { background: #e2e8f0; }
+  .btn-danger { background: #fee2e2; color: #dc2626; }
+  .btn-danger:hover { background: #fecaca; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 10px 16px; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+  td { padding: 12px 16px; font-size: 14px; color: #374151; border-bottom: 1px solid #f1f5f9; }
+  tr:hover td { background: #f8fafc; }
+  input, select, textarea { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; outline: none; transition: border .15s; }
+  input:focus, select:focus, textarea:focus { border-color: #1d4ed8; box-shadow: 0 0 0 3px rgba(29,78,216,.1); }
+  label { font-size: 13px; font-weight: 500; color: #374151; display: block; margin-bottom: 4px; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 50; display: flex; align-items: center; justify-content: center; }
+  .modal { background: #fff; border-radius: 16px; width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+  .progress-bar { height: 6px; border-radius: 3px; background: #e2e8f0; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+  .stat-delta-up { color: #16a34a; font-size: 12px; font-weight: 600; }
+  .stat-delta-down { color: #dc2626; font-size: 12px; font-weight: 600; }
+  .workflow-step { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .workflow-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+  .workflow-line { flex: 1; height: 2px; margin-top: -14px; }
+  .tab { padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: #64748b; transition: all .15s; }
+  .tab.active { background: #1d4ed8; color: #fff; }
+  .tab:not(.active):hover { background: #f1f5f9; color: #374151; }
+  .alert-card { border-left: 4px solid; border-radius: 8px; padding: 12px 16px; }
+  .alert-red { border-color: #dc2626; background: #fff5f5; }
+  .alert-yellow { border-color: #ca8a04; background: #fffbeb; }
+  .alert-blue { border-color: #1d4ed8; background: #eff6ff; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="flex" style="min-height:100vh">
+
+<!-- SIDEBAR -->
+<div class="sidebar flex flex-col" style="position:fixed;top:0;left:0;bottom:0;z-index:40">
+  <div class="px-4 py-5 border-b border-slate-700">
+    <div class="flex items-center gap-2">
+      <div style="width:32px;height:32px;background:#1d4ed8;border-radius:8px;display:flex;align-items:center;justify-content:center">
+        <svg width="18" height="18" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div>
+        <div style="color:#fff;font-weight:700;font-size:15px;line-height:1.2">StaffingOS</div>
+        <div style="color:#64748b;font-size:11px">v1.0 · Interno</div>
+      </div>
+    </div>
+  </div>
+  <nav class="flex-1 py-3 overflow-y-auto">
+    <div style="color:#475569;font-size:11px;font-weight:600;padding:8px 24px 4px;letter-spacing:.08em">GENERAL</div>
+    <div class="sidebar-link active" onclick="showView('dashboard')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </div>
+    <div class="sidebar-link" onclick="showView('colaboradores')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Colaboradores
+    </div>
+    <div class="sidebar-link" onclick="showView('proyectos')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      Proyectos
+    </div>
+    <div style="color:#475569;font-size:11px;font-weight:600;padding:12px 24px 4px;letter-spacing:.08em">FINANZAS</div>
+    <div class="sidebar-link" onclick="showView('facturacion')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Facturación
+    </div>
+    <div class="sidebar-link" onclick="showView('margenes')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Márgenes
+    </div>
+    <div style="color:#475569;font-size:11px;font-weight:600;padding:12px 24px 4px;letter-spacing:.08em">ANÁLISIS</div>
+    <div class="sidebar-link" onclick="showView('reportes')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Reportes
+    </div>
+    <div class="sidebar-link" onclick="showView('alertas')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Alertas
+    </div>
+  </nav>
+  <div class="p-4 border-t border-slate-700">
+    <div class="flex items-center gap-2">
+      <div style="width:30px;height:30px;background:#1e293b;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;font-weight:700">AM</div>
+      <div>
+        <div style="color:#e2e8f0;font-size:13px;font-weight:500">Ana Morales</div>
+        <div style="color:#64748b;font-size:11px">Administrador</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div style="margin-left:240px;flex:1;padding:24px;min-height:100vh">
+
+<!-- ======================== DASHBOARD ======================== -->
+<div id="view-dashboard" class="view active">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 style="font-size:22px;font-weight:700;color:#0f172a">Dashboard Global</h1>
+      <p style="color:#64748b;font-size:14px;margin-top:2px">Marzo 2026 · Vista ejecutiva consolidada</p>
+    </div>
+    <div class="flex gap-2">
+      <select style="width:auto;padding:8px 12px;font-size:13px" id="dash-period">
+        <option>Marzo 2026</option>
+        <option>Febrero 2026</option>
+        <option>Enero 2026</option>
+      </select>
+      <button class="btn btn-primary" onclick="exportReport()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="kpi-card">
+      <div style="color:#64748b;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Facturación Mes</div>
+      <div style="font-size:28px;font-weight:700;color:#0f172a;margin:6px 0">$487.2K</div>
+      <div class="stat-delta-up">▲ 12.4% vs mes anterior</div>
+      <div class="progress-bar mt-3"><div class="progress-fill" style="width:78%;background:#1d4ed8"></div></div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px">78% del objetivo $624K</div>
+    </div>
+    <div class="kpi-card">
+      <div style="color:#64748b;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Margen Comercial Prom.</div>
+      <div style="font-size:28px;font-weight:700;color:#0f172a;margin:6px 0">34.2%</div>
+      <div class="stat-delta-down">▼ 1.8% vs mes anterior</div>
+      <div class="progress-bar mt-3"><div class="progress-fill" style="width:68%;background:#16a34a"></div></div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px">Objetivo: 35% mínimo</div>
+    </div>
+    <div class="kpi-card">
+      <div style="color:#64748b;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Margen Operacional Prom.</div>
+      <div style="font-size:28px;font-weight:700;color:#0f172a;margin:6px 0">22.7%</div>
+      <div class="stat-delta-up">▲ 0.5% vs mes anterior</div>
+      <div class="progress-bar mt-3"><div class="progress-fill" style="width:75%;background:#9333ea"></div></div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px">Objetivo: 20% mínimo</div>
+    </div>
+    <div class="kpi-card">
+      <div style="color:#64748b;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Colaboradores Activos</div>
+      <div style="font-size:28px;font-weight:700;color:#0f172a;margin:6px 0">48</div>
+      <div class="stat-delta-up">▲ 3 altas este mes</div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <span class="badge badge-green">Chile: 31</span>
+        <span class="badge badge-blue">LATAM: 17</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="card p-5" style="grid-column:span 2">
+      <div class="flex items-center justify-between mb-4">
+        <h3 style="font-size:15px;font-weight:600;color:#0f172a">Evolución de Facturación y Margen</h3>
+        <span class="badge badge-blue">Últimos 6 meses</span>
+      </div>
+      <canvas id="chartBilling" height="90"></canvas>
+    </div>
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 style="font-size:15px;font-weight:600;color:#0f172a">Mix por Cliente</h3>
+      </div>
+      <canvas id="chartClients" height="160"></canvas>
+      <div id="client-legend" class="mt-3"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Row -->
+  <div class="grid grid-cols-2 gap-4">
+    <div class="card p-5">
+      <h3 style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:16px">Top Proyectos por Margen Comercial</h3>
+      <table>
+        <thead><tr><th>Proyecto / Cliente</th><th>Facturación</th><th>M. Comercial</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td><div style="font-weight:500">TechCorp — Core Banking</div><div style="font-size:12px;color:#94a3b8">6 colaboradores</div></td><td>$98.4K</td><td><span class="badge badge-green">41.2%</span></td><td><span class="badge badge-green">Activo</span></td></tr>
+          <tr><td><div style="font-weight:500">Retail SA — Ecommerce</div><div style="font-size:12px;color:#94a3b8">4 colaboradores</div></td><td>$72.1K</td><td><span class="badge badge-green">38.7%</span></td><td><span class="badge badge-green">Activo</span></td></tr>
+          <tr><td><div style="font-weight:500">BancoNorte — Data Lake</div><div style="font-size:12px;color:#94a3b8">8 colaboradores</div></td><td>$134.6K</td><td><span class="badge badge-yellow">33.1%</span></td><td><span class="badge badge-green">Activo</span></td></tr>
+          <tr><td><div style="font-weight:500">SegurosPaz — BI</div><div style="font-size:12px;color:#94a3b8">3 colaboradores</div></td><td>$41.2K</td><td><span class="badge badge-red">28.4%</span></td><td><span class="badge badge-yellow">En revisión</span></td></tr>
+          <tr><td><div style="font-weight:500">MineraCopper — SAP</div><div style="font-size:12px;color:#94a3b8">5 colaboradores</div></td><td>$89.3K</td><td><span class="badge badge-green">36.5%</span></td><td><span class="badge badge-green">Activo</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card p-5">
+      <h3 style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:16px">Estado del Flujo de Cobro</h3>
+      <div id="billing-pipeline"></div>
+      <div class="mt-4">
+        <h4 style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:10px">Prefacturas pendientes de acción</h4>
+        <div id="pending-actions"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== COLABORADORES ======================== -->
+<div id="view-colaboradores" class="view">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 style="font-size:22px;font-weight:700;color:#0f172a">Colaboradores</h1>
+      <p style="color:#64748b;font-size:14px;margin-top:2px">Gestión del ciclo de vida completo del colaborador</p>
+    </div>
+    <button class="btn btn-primary" onclick="openColabModal()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nuevo Colaborador
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="card p-4 mb-4">
+    <div class="grid grid-cols-5 gap-3">
+      <input type="text" placeholder="Buscar por nombre, rut, proyecto..." id="colab-search" oninput="renderColabs()">
+      <select id="colab-filter-pais" onchange="renderColabs()">
+        <option value="">Todos los países</option>
+        <option>Chile</option>
+        <option>Colombia</option>
+        <option>México</option>
+        <option>Argentina</option>
+      </select>
+      <select id="colab-filter-rol" onchange="renderColabs()">
+        <option value="">Todos los roles</option>
+        <option>Desarrollador Senior</option>
+        <option>Desarrollador Semi-Senior</option>
+        <option>Desarrollador Junior</option>
+        <option>Arquitecto</option>
+        <option>QA Engineer</option>
+        <option>Tech Lead</option>
+        <option>Data Engineer</option>
+        <option>Scrum Master</option>
+      </select>
+      <select id="colab-filter-estado" onchange="renderColabs()">
+        <option value="">Todos los estados</option>
+        <option>Activo</option>
+        <option>Inactivo</option>
+        <option>En proceso de salida</option>
+      </select>
+      <select id="colab-filter-cliente" onchange="renderColabs()">
+        <option value="">Todos los clientes</option>
+        <option>TechCorp</option>
+        <option>BancoNorte</option>
+        <option>Retail SA</option>
+        <option>SegurosPaz</option>
+        <option>MineraCopper</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead><tr><th>Colaborador</th><th>Rol / Seniority</th><th>Cliente / Proyecto</th><th>País</th><th>Sueldo Bruto</th><th>Tarifa Cliente</th><th>M. Comercial</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody id="colabs-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ======================== PROYECTOS ======================== -->
+<div id="view-proyectos" class="view">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 style="font-size:22px;font-weight:700;color:#0f172a">Proyectos & Asignaciones</h1>
+      <p style="color:#64748b;font-size:14px;margin-top:2px">Gestión de clientes, proyectos y asignaciones de servicio</p>
+    </div>
+    <button class="btn btn-primary" onclick="openProyectoModal()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nuevo Proyecto
+    </button>
+  </div>
+
+  <div id="proyectos-grid" class="grid grid-cols-3 gap-4"></div>
+</div>
+
+<!-- ======================== FACTURACIÓN ======================== -->
+<div id="view-facturacion" class="view">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 style="font-size:22px;font-weight:700;color:#0f172a">Facturación</h1>
+      <p style="color:#64748b;font-size:14px;margin-top:2px">Motor de prefacturas y flujo administrativo de cobro</p>
+    </div>
+    <div class="flex gap-2">
+      <select style="width:auto;padding:8px 12px;font-size:13px" id="fact-period" onchange="renderFacturacion()">
+        <option>Marzo 2026</option>
+        <option>Febrero 2026</option>
+        <option>Enero 2026</option>
+      </select>
+      <button class="btn btn-secondary" onclick="generarPrefacturas()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Generar Prefacturas
+      </button>
+      <button class="btn btn-primary" onclick="exportFacturas()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar Excel
+      </button>
+    </div>
+  </div>
+
+  <!-- Workflow summary -->
+  <div id="workflow-summary" class="card p-5 mb-5"></div>
+
+  <!-- Filters -->
+  <div class="flex gap-2 mb-4" id="fact-tabs"></div>
+
+  <!-- Table -->
+  <div class="card">
+    <table>
+      <thead><tr><th>N° Prefactura</th><th>Cliente</th><th>Período</th><th>Colaboradores</th><th>Subtotal</th><th>Ajustes</th><th>Total</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody id="fact-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ======================== MÁRGENES ======================== -->
+<div id="view-margenes" class="view">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 style="font-size:22px;font-weight:700;color:#0f172a">Calculadora de Márgenes</h1>
+      <p style="color:#64748b;font-size:14px;margin-top:2px">Cálculo en tiempo real de márgenes comerciales y operacionales</p>
+    </div>
+  </div>
+  <div class="grid grid-cols-2 gap-6">
+    <div class="card p-6">
+      <h3 style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:16px">Parámetros de Cálculo</h3>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label>País</label>
+          <select id="calc-pais" onchange="calcularMargenes()">
+            <option value="CL">Chile</option>
+            <option value="LATAM">LATAM (Colombia/Méx/Arg)</option>
+          </select>
+        </div>
+        <div>
+          <label>Tipo de Jornada</label>
+          <select id="calc-jornada" onchange="calcularMargenes()">
+            <option value="full">Full-time (100%)</option>
+            <option value="75">Part-time 75%</option>
+            <option value="50">Part-time 50%</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label>Sueldo Bruto Mensual (USD)</label>
+          <input type="number" id="calc-sueldo" value="4500" oninput="calcularMargenes()">
+        </div>
+        <div>
+          <label>Tarifa Cliente Mensual (USD)</label>
+          <input type="number" id="calc-tarifa" value="7200" oninput="calcularMargenes()">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label>Bono / Beneficios (USD/mes)</label>
+          <input type="number" id="calc-bono" value="200" oninput="calcularMargenes()">
+        </div>
+        <div>
+          <label>Gastos IT / Equipamiento (USD/mes)</label>
+          <input type="number" id="calc-it" value="80" oninput="calcularMargenes()">
+        </div>
+      </div>
+      <div style="background:#f8fafc;border-radius:8px;padding:12px;margin-top:4px">
+        <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:8px">ESTRUCTURA DE COSTOS INDIRECTOS (PARAMETRIZABLE)</div>
+        <div id="costos-indirectos"></div>
+      </div>
+    </div>
+    <div class="card p-6">
+      <h3 style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:16px">Resultado del Cálculo</h3>
+      <div id="calc-result"></div>
+      <canvas id="chartMargen" height="160" class="mt-4"></canvas>
+    </div>
+  </div>
+  <div class="card p-6 mt-6">
+    <h3 style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:16px">Historial de Cambios — Versiones del Colaborador</h3>
+    <div id="historial-table"></div>
+  </div>
+</div>
+
+<!-- ======================== REPORTES ======================== -->
+<div id="view-reportes" class="view">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 style="font-size:22px;font-weight:700;color:#0f172a">Reportes Estratégicos</h1>
+      <p style="color:#64748b;font-size:14px;margin-top:2px">Análisis de rentabilidad multidimensional</p>
+    </div>
+    <button class="btn btn-primary" onclick="exportReport()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar
+    </button>
+  </div>
+
+  <div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="card p-5">
+      <h3 style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:12px">Margen por Seniority</h3>
+      <canvas id="chartSeniority" height="180"></canvas>
+    </div>
+    <div class="card p-5">
+      <h3 style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:12px">Margen por Rol</h3>
+      <canvas id="chartRol" height="180"></canvas>
+    </div>
+    <div class="card p-5">
+      <h3 style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:12px">Rentabilidad por Comercial</h3>
+      <canvas id="chartComercial" height="180"></canvas>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-4">
+    <div class="card p-5">
+      <h3 style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:16px">Proyectos bajo umbral de margen (&lt;30%)</h3>
+      <table>
+        <thead><tr><th>Proyecto</th><th>Cliente</th><th>M. Comercial</th><th>Desviación</th><th>Acción</th></tr></thead>
+        <tbody>
+          <tr><td>BI Analytics</td><td>SegurosPaz</td><td><span class="badge badge-red">28.4%</span></td><td style="color:#dc2626;font-weight:600">-1.6pp</td><td><button class="btn btn-sm btn-secondary">Revisar</button></td></tr>
+          <tr><td>CRM Legacy</td><td>RetailSA</td><td><span class="badge badge-red">26.1%</span></td><td style="color:#dc2626;font-weight:600">-3.9pp</td><td><button class="btn btn-sm btn-secondary">Revisar</button></td></tr>
+          <tr><td>Portal Clientes</td><td>BancoNorte</td><td><span class="badge badge-yellow">31.2%</span></td><td style="color:#ca8a04;font-weight:600">+1.2pp</td><td><button class="btn btn-sm btn-secondary">Revisar</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card p-5">
+      <h3 style="font-size:15px;font-weight:600;color:#0f172a;margin-bottom:16px">KPIs de Éxito del Sistema</h3>
+      <div class="space-y-4">
+        <div>
+          <div class="flex justify-between mb-1"><span style="font-size:13px;font-weight:500">Reducción tiempo prefacturas</span><span style="font-weight:700;color:#16a34a">83%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:83%;background:#16a34a"></div></div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:2px">Objetivo: 80% · Superado</div>
+        </div>
+        <div>
+          <div class="flex justify-between mb-1"><span style="font-size:13px;font-weight:500">Reducción errores de facturación</span><span style="font-weight:700;color:#16a34a">96%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:96%;background:#16a34a"></div></div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:2px">Objetivo: 95% · Superado</div>
+        </div>
+        <div>
+          <div class="flex justify-between mb-1"><span style="font-size:13px;font-weight:500">Tiempo reporte de margen global</span><span style="font-weight:700;color:#16a34a">&lt;3 seg</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:100%;background:#16a34a"></div></div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:2px">Objetivo: &lt;3 seg · Cumplido</div>
+        </div>
+        <div>
+          <div class="flex justify-between mb-1"><span style="font-size:13px;font-weight:500">Proyectos bajo umbral identificados</span><span style="font-weight:700;color:#16a34a">100%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:100%;background:#16a34a"></div></div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:2px">3/3 proyectos críticos monitoreados</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== ALERTAS ======================== -->
+<div id="view-alertas" class="view">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 style="font-size:22px;font-weight:700;color:#0f172a">Alertas & Notificaciones</h1>
+      <p style="color:#64748b;font-size:14px;margin-top:2px">Monitoreo de desviaciones críticas y vencimientos</p>
+    </div>
+    <button class="btn btn-secondary" onclick="markAllRead()">Marcar todas como leídas</button>
+  </div>
+  <div id="alertas-list" class="space-y-3"></div>
+</div>
+
+</div><!-- end main -->
+</div><!-- end flex -->
+
+<!-- ======================== MODALS ======================== -->
+
+<!-- Colaborador Modal -->
+<div id="modal-colab" class="modal-overlay" style="display:none" onclick="closeModalOnOverlay(event,'modal-colab')">
+  <div class="modal p-6">
+    <div class="flex items-center justify-between mb-5">
+      <h2 style="font-size:18px;font-weight:700;color:#0f172a" id="modal-colab-title">Nuevo Colaborador</h2>
+      <button onclick="closeModal('modal-colab')" style="background:none;border:none;cursor:pointer;color:#64748b">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="space-y-4">
+      <div style="background:#eff6ff;border-radius:8px;padding:10px 14px;font-size:13px;color:#1d4ed8;font-weight:500">Datos Personales</div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label>Nombre Completo *</label><input type="text" id="ci-nombre" placeholder="Ej: Carlos Muñoz Pérez"></div>
+        <div><label>RUT / ID *</label><input type="text" id="ci-rut" placeholder="Ej: 18.234.567-8"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label>Email Corporativo *</label><input type="email" id="ci-email" placeholder="c.munoz@empresa.com"></div>
+        <div><label>Teléfono</label><input type="text" id="ci-tel" placeholder="+56 9 1234 5678"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label>País *</label>
+          <select id="ci-pais" onchange="actualizarCostosModal()">
+            <option>Chile</option><option>Colombia</option><option>México</option><option>Argentina</option>
+          </select>
+        </div>
+        <div><label>Fecha de Ingreso *</label><input type="date" id="ci-ingreso" value="2026-03-01"></div>
+      </div>
+      <div style="background:#eff6ff;border-radius:8px;padding:10px 14px;font-size:13px;color:#1d4ed8;font-weight:500;margin-top:8px">Datos Económicos</div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label>Rol / Cargo *</label>
+          <select id="ci-rol">
+            <option>Desarrollador Senior</option><option>Desarrollador Semi-Senior</option><option>Desarrollador Junior</option>
+            <option>Arquitecto</option><option>QA Engineer</option><option>Tech Lead</option>
+            <option>Data Engineer</option><option>Scrum Master</option>
+          </select>
+        </div>
+        <div><label>Seniority</label>
+          <select id="ci-seniority">
+            <option>Senior</option><option>Semi-Senior</option><option>Junior</option><option>Lead</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label>Sueldo Bruto Mensual (USD) *</label><input type="number" id="ci-sueldo" placeholder="4500" oninput="calcModalMargen()"></div>
+        <div><label>Tipo de Jornada</label>
+          <select id="ci-jornada" onchange="calcModalMargen()">
+            <option value="100">Full-time 100%</option><option value="75">Part-time 75%</option><option value="50">Part-time 50%</option>
+          </select>
+        </div>
+      </div>
+      <div style="background:#eff6ff;border-radius:8px;padding:10px 14px;font-size:13px;color:#1d4ed8;font-weight:500;margin-top:8px">Datos Comerciales</div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label>Cliente *</label>
+          <select id="ci-cliente">
+            <option>TechCorp</option><option>BancoNorte</option><option>Retail SA</option><option>SegurosPaz</option><option>MineraCopper</option>
+          </select>
+        </div>
+        <div><label>Proyecto *</label><input type="text" id="ci-proyecto" placeholder="Ej: Core Banking Modernization"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label>Tarifa Cliente Mensual (USD) *</label><input type="number" id="ci-tarifa" placeholder="7200" oninput="calcModalMargen()"></div>
+        <div><label>Comercial Asignado</label>
+          <select id="ci-comercial">
+            <option>Roberto Salinas</option><option>Valentina Cruz</option><option>Diego Herrera</option>
+          </select>
+        </div>
+      </div>
+      <div id="modal-margen-preview" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;display:none">
+        <div style="font-size:12px;font-weight:600;color:#16a34a;margin-bottom:6px">MARGEN ESPERADO (LÍNEA BASE)</div>
+        <div class="grid grid-cols-2 gap-3" id="modal-margen-values"></div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-3 mt-6">
+      <button class="btn btn-secondary" onclick="closeModal('modal-colab')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveColab()">Guardar Colaborador</button>
+    </div>
+  </div>
+</div>
+
+<!-- Proyecto Modal -->
+<div id="modal-proyecto" class="modal-overlay" style="display:none" onclick="closeModalOnOverlay(event,'modal-proyecto')">
+  <div class="modal p-6">
+    <div class="flex items-center justify-between mb-5">
+      <h2 style="font-size:18px;font-weight:700;color:#0f172a">Nuevo Proyecto</h2>
+      <button onclick="closeModal('modal-proyecto')" style="background:none;border:none;cursor:pointer;color:#64748b">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div><label>Nombre del Proyecto *</label><input type="text" id="pi-nombre" placeholder="Ej: Core Banking v2"></div>
+        <div><label>Cliente *</label>
+          <select id="pi-cliente">
+            <option>TechCorp</option><option>BancoNorte</option><option>Retail SA</option><option>SegurosPaz</option><option>MineraCopper</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label>Fecha Inicio</label><input type="date" id="pi-inicio" value="2026-03-01"></div>
+        <div><label>Fecha Fin Estimada</label><input type="date" id="pi-fin" value="2026-12-31"></div>
+      </div>
+      <div><label>Descripción</label><textarea id="pi-desc" rows="2" placeholder="Descripción breve del proyecto..."></textarea></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label>Comercial Responsable</label>
+          <select id="pi-comercial"><option>Roberto Salinas</option><option>Valentina Cruz</option><option>Diego Herrera</option></select>
+        </div>
+        <div><label>Margen Mínimo Objetivo (%)</label><input type="number" id="pi-margen-min" value="30"></div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-3 mt-6">
+      <button class="btn btn-secondary" onclick="closeModal('modal-proyecto')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProyecto()">Crear Proyecto</button>
+    </div>
+  </div>
+</div>
+
+<!-- Factura Detail Modal -->
+<div id="modal-factura" class="modal-overlay" style="display:none" onclick="closeModalOnOverlay(event,'modal-factura')">
+  <div class="modal p-6" style="max-width:680px">
+    <div class="flex items-center justify-between mb-5">
+      <h2 style="font-size:18px;font-weight:700;color:#0f172a" id="modal-factura-title">Detalle de Prefactura</h2>
+      <button onclick="closeModal('modal-factura')" style="background:none;border:none;cursor:pointer;color:#64748b">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="modal-factura-content"></div>
+    <div class="flex justify-end gap-3 mt-6" id="modal-factura-actions"></div>
+  </div>
+</div>
+
+<!-- Colaborador Detail Modal -->
+<div id="modal-colab-detail" class="modal-overlay" style="display:none" onclick="closeModalOnOverlay(event,'modal-colab-detail')">
+  <div class="modal p-6" style="max-width:680px">
+    <div class="flex items-center justify-between mb-5">
+      <h2 style="font-size:18px;font-weight:700;color:#0f172a" id="modal-cd-title">Detalle Colaborador</h2>
+      <button onclick="closeModal('modal-colab-detail')" style="background:none;border:none;cursor:pointer;color:#64748b">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="modal-cd-content"></div>
+  </div>
+</div>
+
+<!-- Notification toast -->
+<div id="toast" style="position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;opacity:0;transition:opacity .3s;z-index:100;max-width:320px"></div>
+
+<script>
+// ==================== DATA ====================
+
+const COSTOS_INDIRECTOS = {
+  CL:    { prevision: 0.12, seguro_cesantia: 0.024, mutual: 0.009, overhead_admin: 0.06, overhead_venta: 0.03 },
+  LATAM: { prevision: 0.0,  seguro_cesantia: 0.0,   mutual: 0.0,   overhead_admin: 0.07, overhead_venta: 0.035 }
+};
+
+const ESTADOS_FACTURA = ['Borrador','Prefactura','Enviada','Con OC','Con HES','Facturada','Pagada'];
+const ESTADO_COLORS = {
+  'Borrador':'badge-gray','Prefactura':'badge-blue','Enviada':'badge-yellow',
+  'Con OC':'badge-purple','Con HES':'badge-orange','Facturada':'badge-green','Pagada':'badge-green'
+};
+
+let colaboradores = [
+  {id:1,nombre:'Carlos Muñoz',rut:'18.234.567-8',email:'c.munoz@staffingos.cl',pais:'Chile',rol:'Desarrollador Senior',seniority:'Senior',cliente:'TechCorp',proyecto:'Core Banking Modernization',sueldo:4500,tarifa:7200,jornada:100,estado:'Activo',comercial:'Roberto Salinas',ingreso:'2024-01-15',historial:[{fecha:'2024-01-15',sueldo:3800,tarifa:6500,jornada:100,motivo:'Alta inicial'},{fecha:'2025-03-01',sueldo:4200,tarifa:7000,jornada:100,motivo:'Ajuste salarial anual'},{fecha:'2026-01-01',sueldo:4500,tarifa:7200,jornada:100,motivo:'Promoción y renegociación de tarifa'}]},
+  {id:2,nombre:'Daniela Riquelme',rut:'17.456.789-K',email:'d.riquelme@staffingos.cl',pais:'Chile',rol:'Tech Lead',seniority:'Lead',cliente:'BancoNorte',proyecto:'Data Lake Platform',sueldo:5800,tarifa:9500,jornada:100,estado:'Activo',comercial:'Valentina Cruz',ingreso:'2023-08-01',historial:[{fecha:'2023-08-01',sueldo:5000,tarifa:8200,jornada:100,motivo:'Alta inicial'},{fecha:'2026-01-01',sueldo:5800,tarifa:9500,jornada:100,motivo:'Aumento por retención'}]},
+  {id:3,nombre:'Martín Lagos',rut:'16.987.654-3',email:'m.lagos@staffingos.cl',pais:'Chile',rol:'QA Engineer',seniority:'Semi-Senior',cliente:'Retail SA',proyecto:'Ecommerce Platform',sueldo:2800,tarifa:4800,jornada:100,estado:'Activo',comercial:'Roberto Salinas',ingreso:'2025-05-01',historial:[{fecha:'2025-05-01',sueldo:2800,tarifa:4800,jornada:100,motivo:'Alta inicial'}]},
+  {id:4,nombre:'Sofía Gutiérrez',rut:'19.123.456-7',email:'s.gutierrez@staffingos.cl',pais:'Colombia',rol:'Data Engineer',seniority:'Senior',cliente:'BancoNorte',proyecto:'Data Lake Platform',sueldo:3800,tarifa:6400,jornada:100,estado:'Activo',comercial:'Valentina Cruz',ingreso:'2025-02-01',historial:[{fecha:'2025-02-01',sueldo:3800,tarifa:6400,jornada:100,motivo:'Alta inicial LATAM'}]},
+  {id:5,nombre:'Andrés Palma',rut:'15.789.012-5',email:'a.palma@staffingos.cl',pais:'Chile',rol:'Arquitecto',seniority:'Senior',cliente:'MineraCopper',proyecto:'SAP Migration',sueldo:6200,tarifa:10200,jornada:100,estado:'Activo',comercial:'Diego Herrera',ingreso:'2024-06-01',historial:[{fecha:'2024-06-01',sueldo:5500,tarifa:9000,jornada:100,motivo:'Alta inicial'},{fecha:'2026-01-01',sueldo:6200,tarifa:10200,jornada:100,motivo:'Renegociación proyecto'}]},
+  {id:6,nombre:'Camila Vera',rut:'20.234.567-1',email:'c.vera@staffingos.cl',pais:'México',rol:'Desarrollador Semi-Senior',seniority:'Semi-Senior',cliente:'SegurosPaz',proyecto:'BI Analytics',sueldo:2400,tarifa:3900,jornada:100,estado:'Activo',comercial:'Roberto Salinas',ingreso:'2025-08-01',historial:[{fecha:'2025-08-01',sueldo:2400,tarifa:3900,jornada:100,motivo:'Alta inicial LATAM'}]},
+  {id:7,nombre:'Felipe Rojas',rut:'14.567.890-2',email:'f.rojas@staffingos.cl',pais:'Chile',rol:'Scrum Master',seniority:'Senior',cliente:'TechCorp',proyecto:'Core Banking Modernization',sueldo:4200,tarifa:6800,jornada:100,estado:'Activo',comercial:'Roberto Salinas',ingreso:'2024-03-01',historial:[{fecha:'2024-03-01',sueldo:3900,tarifa:6200,jornada:100,motivo:'Alta inicial'},{fecha:'2025-09-01',sueldo:4200,tarifa:6800,jornada:100,motivo:'Ajuste de tarifa'}]},
+  {id:8,nombre:'Isabel Moreno',rut:'21.345.678-9',email:'i.moreno@staffingos.cl',pais:'Argentina',rol:'Desarrollador Junior',seniority:'Junior',cliente:'Retail SA',proyecto:'Ecommerce Platform',sueldo:1800,tarifa:3200,jornada:75,estado:'Activo',comercial:'Diego Herrera',ingreso:'2025-11-01',historial:[{fecha:'2025-11-01',sueldo:1800,tarifa:3200,jornada:75,motivo:'Alta inicial part-time'}]},
+  {id:9,nombre:'Ricardo Soto',rut:'13.890.123-4',email:'r.soto@staffingos.cl',pais:'Chile',rol:'Desarrollador Senior',seniority:'Senior',cliente:'BancoNorte',proyecto:'Portal Clientes',sueldo:4800,tarifa:7100,jornada:100,estado:'Activo',comercial:'Valentina Cruz',ingreso:'2023-11-01',historial:[{fecha:'2023-11-01',sueldo:4200,tarifa:6500,jornada:100,motivo:'Alta inicial'},{fecha:'2025-01-01',sueldo:4800,tarifa:7100,jornada:100,motivo:'Aumento anual'}]},
+  {id:10,nombre:'Patricia Fuentes',rut:'16.234.567-0',email:'p.fuentes@staffingos.cl',pais:'Chile',rol:'Desarrollador Semi-Senior',seniority:'Semi-Senior',cliente:'MineraCopper',proyecto:'SAP Migration',sueldo:3200,tarifa:5400,jornada:100,estado:'En proceso de salida',comercial:'Diego Herrera',ingreso:'2024-09-01',historial:[{fecha:'2024-09-01',sueldo:3200,tarifa:5400,jornada:100,motivo:'Alta inicial'}]}
+];
+
+let proyectos = [
+  {id:1,nombre:'Core Banking Modernization',cliente:'TechCorp',inicio:'2024-01-01',fin:'2026-12-31',comercial:'Roberto Salinas',margenMin:35,desc:'Modernización del core bancario con microservicios'},
+  {id:2,nombre:'Data Lake Platform',cliente:'BancoNorte',inicio:'2024-06-01',fin:'2026-09-30',comercial:'Valentina Cruz',margenMin:32,desc:'Construcción de plataforma de datos centralizada'},
+  {id:3,nombre:'Ecommerce Platform',cliente:'Retail SA',inicio:'2025-01-01',fin:'2026-06-30',comercial:'Roberto Salinas',margenMin:35,desc:'Plataforma de comercio electrónico omnicanal'},
+  {id:4,nombre:'BI Analytics',cliente:'SegurosPaz',inicio:'2025-08-01',fin:'2026-08-31',comercial:'Roberto Salinas',margenMin:30,desc:'Implementación de herramientas de inteligencia de negocio'},
+  {id:5,nombre:'SAP Migration',cliente:'MineraCopper',inicio:'2024-06-01',fin:'2026-12-31',comercial:'Diego Herrera',margenMin:33,desc:'Migración y parametrización de SAP S/4HANA'},
+  {id:6,nombre:'Portal Clientes',cliente:'BancoNorte',inicio:'2023-11-01',fin:'2026-03-31',comercial:'Valentina Cruz',margenMin:30,desc:'Portal digital de autoservicio para clientes del banco'}
+];
+
+let facturas = [
+  {id:'PF-2026-031',cliente:'TechCorp',periodo:'Marzo 2026',colabs:2,subtotal:14000,ajuste:-280,estado:'Con HES',notas:'Descuento 2 días feriado',oc:'OC-2026-0847',hes:'HES-2026-312'},
+  {id:'PF-2026-032',cliente:'BancoNorte',periodo:'Marzo 2026',colabs:3,subtotal:23300,ajuste:0,estado:'Con OC',notas:'',oc:'OC-2026-0921'},
+  {id:'PF-2026-033',cliente:'Retail SA',periodo:'Marzo 2026',colabs:2,subtotal:8000,ajuste:160,estado:'Prefactura',notas:'Ajuste horas extras aprobadas'},
+  {id:'PF-2026-034',cliente:'SegurosPaz',periodo:'Marzo 2026',colabs:1,subtotal:3900,ajuste:0,estado:'Borrador',notas:''},
+  {id:'PF-2026-035',cliente:'MineraCopper',periodo:'Marzo 2026',colabs:2,subtotal:15600,ajuste:0,estado:'Enviada',notas:'Enviada el 10/03/2026'},
+  {id:'PF-2026-021',cliente:'TechCorp',periodo:'Febrero 2026',colabs:2,subtotal:14000,ajuste:0,estado:'Pagada',notas:'Pago recibido 15/03/2026',oc:'OC-2026-0701',hes:'HES-2026-198'},
+  {id:'PF-2026-022',cliente:'BancoNorte',periodo:'Febrero 2026',colabs:3,subtotal:23300,ajuste:-500,estado:'Facturada',notas:'Nc aplicada por ausencia',oc:'OC-2026-0752'}
+];
+
+let alertas = [
+  {id:1,tipo:'red',titulo:'Margen bajo umbral: SegurosPaz — BI Analytics',desc:'El margen comercial (28.4%) está 1.6pp por debajo del umbral mínimo definido (30%). Se requiere renegociación de tarifa.',fecha:'Hace 2 días',leida:false},
+  {id:2,tipo:'red',titulo:'Margen crítico: Retail SA — CRM Legacy',desc:'El margen comercial cayó a 26.1% después del último ajuste salarial. Acción urgente requerida.',fecha:'Hace 3 días',leida:false},
+  {id:3,tipo:'yellow',titulo:'Prefactura BancoNorte sin OC después de 15 días',desc:'La prefactura PF-2026-032 fue enviada el 01/03/2026 y aún no tiene Orden de Compra registrada. Riesgo de retraso en cobro.',fecha:'Hace 1 día',leida:false},
+  {id:4,tipo:'yellow',titulo:'Colaborador en proceso de salida',desc:'Patricia Fuentes (MineraCopper) tiene fecha de salida en 30 días. Confirmar reemplazo con comercial Diego Herrera.',fecha:'Hace 4 días',leida:false},
+  {id:5,tipo:'blue',titulo:'3 prefacturas listas para generar en Marzo 2026',desc:'Los colaboradores de SegurosPaz y Retail SA tienen sus datos completos. Generar prefacturas antes del cierre del mes.',fecha:'Hoy',leida:false},
+  {id:6,tipo:'yellow',titulo:'Vencimiento de proyecto: Portal Clientes (BancoNorte)',desc:'El proyecto "Portal Clientes" tiene fecha estimada de fin el 31/03/2026. Confirmar extensión o cierre con Valentina Cruz.',fecha:'Hace 5 días',leida:true},
+  {id:7,tipo:'blue',titulo:'Nueva incorporación registrada: Isabel Moreno',desc:'Colaboradora incorporada el 01/11/2025 en modalidad part-time 75%. Tarifa cliente configurada a $3,200/mes.',fecha:'Hace 5 días',leida:true}
+];
+
+let editingColabId = null;
+let factTabActivo = 'Todos';
+let margenChartRef = null;
+
+// ==================== UTILS ====================
+
+function fmt(n){return new Intl.NumberFormat('es-CL',{style:'currency',currency:'USD',minimumFractionDigits:0,maximumFractionDigits:0}).format(n);}
+function fmtPct(n){return n.toFixed(1)+'%';}
+function toast(msg,color='#0f172a'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.background=color; t.style.opacity='1';
+  setTimeout(()=>t.style.opacity='0',3000);
+}
+function closeModal(id){document.getElementById(id).style.display='none';}
+function closeModalOnOverlay(e,id){if(e.target.id===id)closeModal(id);}
+function openModal(id){document.getElementById(id).style.display='flex';}
+
+function calcMargen(c){
+  const pais = (c.pais==='Chile')?'CL':'LATAM';
+  const ci = COSTOS_INDIRECTOS[pais];
+  const jornadaFactor = (c.jornada||100)/100;
+  const sueldoEfectivo = c.sueldo * jornadaFactor;
+  const tarifaEfectiva = c.tarifa * jornadaFactor;
+  const cargas = sueldoEfectivo * (ci.prevision + ci.seguro_cesantia + ci.mutual);
+  const costoDirecto = sueldoEfectivo + cargas;
+  const margenComercial = ((tarifaEfectiva - costoDirecto) / tarifaEfectiva) * 100;
+  const overheadTotal = tarifaEfectiva * (ci.overhead_admin + ci.overhead_venta);
+  const costoTotal = costoDirecto + overheadTotal;
+  const margenOperacional = ((tarifaEfectiva - costoTotal) / tarifaEfectiva) * 100;
+  return {sueldoEfectivo,tarifaEfectiva,cargas,costoDirecto,overheadTotal,costoTotal,margenComercial,margenOperacional};
+}
+
+function margenBadge(pct){
+  if(pct>=35) return `<span class="badge badge-green">${fmtPct(pct)}</span>`;
+  if(pct>=30) return `<span class="badge badge-yellow">${fmtPct(pct)}</span>`;
+  return `<span class="badge badge-red">${fmtPct(pct)}</span>`;
+}
+
+function estadoBadge(e){
+  const cls=ESTADO_COLORS[e]||'badge-gray';
+  return `<span class="badge ${cls}">${e}</span>`;
+}
+
+// ==================== NAVIGATION ====================
+
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.sidebar-link').forEach(l=>l.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  event.currentTarget.classList.add('active');
+
+  if(name==='dashboard') initDashboard();
+  else if(name==='colaboradores') renderColabs();
+  else if(name==='proyectos') renderProyectos();
+  else if(name==='facturacion') renderFacturacion();
+  else if(name==='margenes') initMargenes();
+  else if(name==='reportes') initReportes();
+  else if(name==='alertas') renderAlertas();
+}
+
+// ==================== DASHBOARD ====================
+
+function initDashboard(){
+  // Billing + margin chart
+  const ctx1=document.getElementById('chartBilling');
+  if(ctx1._chart) ctx1._chart.destroy();
+  const ch1=new Chart(ctx1,{
+    type:'bar',
+    data:{
+      labels:['Oct','Nov','Dic','Ene','Feb','Mar'],
+      datasets:[
+        {label:'Facturación (USD K)',data:[391,418,402,447,433,487],backgroundColor:'rgba(29,78,216,.15)',borderColor:'#1d4ed8',borderWidth:2,borderRadius:4,yAxisID:'y'},
+        {label:'Margen Comercial %',data:[32.1,33.4,32.8,35.1,36.0,34.2],type:'line',borderColor:'#16a34a',backgroundColor:'transparent',borderWidth:2.5,pointBackgroundColor:'#16a34a',tension:.3,yAxisID:'y1'}
+      ]
+    },
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:12}}}},scales:{y:{grid:{color:'#f1f5f9'},ticks:{callback:v=>'$'+v+'K'}},y1:{position:'right',grid:{display:false},ticks:{callback:v=>v+'%'},min:25,max:45}}}
+  });
+  ctx1._chart=ch1;
+
+  // Client pie
+  const ctx2=document.getElementById('chartClients');
+  if(ctx2._chart) ctx2._chart.destroy();
+  const clientData=[{n:'TechCorp',v:98.4},{n:'BancoNorte',v:134.6},{n:'Retail SA',v:72.1},{n:'MineraCopper',v:89.3},{n:'SegurosPaz',v:41.2}];
+  const ch2=new Chart(ctx2,{
+    type:'doughnut',
+    data:{
+      labels:clientData.map(x=>x.n),
+      datasets:[{data:clientData.map(x=>x.v),backgroundColor:['#1d4ed8','#7c3aed','#0891b2','#059669','#dc2626'],borderWidth:2,borderColor:'#fff'}]
+    },
+    options:{responsive:true,cutout:'65%',plugins:{legend:{display:false}}}
+  });
+  ctx2._chart=ch2;
+  const leg=document.getElementById('client-legend');
+  const colors=['#1d4ed8','#7c3aed','#0891b2','#059669','#dc2626'];
+  leg.innerHTML=clientData.map((x,i)=>`<div class="flex items-center justify-between mb-1"><div class="flex items-center gap-2"><div style="width:8px;height:8px;border-radius:50%;background:${colors[i]}"></div><span style="font-size:12px;color:#374151">${x.n}</span></div><span style="font-size:12px;font-weight:600;color:#374151">${fmt(x.v*1000)}</span></div>`).join('');
+
+  // Billing pipeline
+  const totals = {};
+  ESTADOS_FACTURA.forEach(e=>{totals[e]=0;});
+  facturas.forEach(f=>{if(totals[f.estado]!==undefined)totals[f.estado]+=(f.subtotal+f.ajuste);});
+  const pipeline=document.getElementById('billing-pipeline');
+  pipeline.innerHTML=`<div class="flex items-center gap-1 mb-3">`+
+    ESTADOS_FACTURA.map((e,i)=>{
+      const val=totals[e];
+      const cls=val>0?'background:#1d4ed8;color:#fff':'background:#e2e8f0;color:#94a3b8';
+      return `<div style="flex:1;text-align:center"><div style="height:8px;border-radius:4px;${val>0?'background:#1d4ed8':'background:#e2e8f0'};margin-bottom:4px"></div><div style="font-size:10px;color:#64748b;font-weight:600">${e}</div><div style="font-size:12px;font-weight:700;color:#0f172a">${val>0?fmt(val):'-'}</div></div>`;
+    }).join('<div style="width:1px;height:40px;background:#e2e8f0;margin-top:8px"></div>')+`</div>`;
+
+  const pa=document.getElementById('pending-actions');
+  const pending=facturas.filter(f=>['Prefactura','Enviada','Con OC','Con HES'].includes(f.estado)).slice(0,3);
+  pa.innerHTML=pending.map(f=>`<div class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+    <div><div style="font-size:13px;font-weight:500">${f.id} · ${f.cliente}</div><div style="font-size:11px;color:#94a3b8">${fmt(f.subtotal+f.ajuste)}</div></div>
+    ${estadoBadge(f.estado)}
+  </div>`).join('');
+}
+
+// ==================== COLABORADORES ====================
+
+function renderColabs(){
+  const search=(document.getElementById('colab-search')?.value||'').toLowerCase();
+  const pais=document.getElementById('colab-filter-pais')?.value||'';
+  const rol=document.getElementById('colab-filter-rol')?.value||'';
+  const estado=document.getElementById('colab-filter-estado')?.value||'';
+  const cliente=document.getElementById('colab-filter-cliente')?.value||'';
+
+  const filtered=colaboradores.filter(c=>{
+    if(search && !c.nombre.toLowerCase().includes(search) && !c.rut.includes(search) && !c.proyecto.toLowerCase().includes(search)) return false;
+    if(pais && c.pais!==pais) return false;
+    if(rol && c.rol!==rol) return false;
+    if(estado && c.estado!==estado) return false;
+    if(cliente && c.cliente!==cliente) return false;
+    return true;
+  });
+
+  const tbody=document.getElementById('colabs-tbody');
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:32px">No se encontraron colaboradores</td></tr>`;return;}
+  tbody.innerHTML=filtered.map(c=>{
+    const m=calcMargen(c);
+    const estadoMap={'Activo':'badge-green','Inactivo':'badge-gray','En proceso de salida':'badge-yellow'};
+    return `<tr>
+      <td><div style="font-weight:500">${c.nombre}</div><div style="font-size:12px;color:#94a3b8">${c.rut}</div></td>
+      <td><div>${c.rol}</div><span class="badge badge-gray" style="font-size:11px">${c.seniority}</span></td>
+      <td><div style="font-weight:500">${c.cliente}</div><div style="font-size:12px;color:#94a3b8">${c.proyecto}</div></td>
+      <td>${c.pais}</td>
+      <td style="font-weight:500">${fmt(c.sueldo)}</td>
+      <td style="font-weight:500">${fmt(c.tarifa)}</td>
+      <td>${margenBadge(m.margenComercial)}</td>
+      <td><span class="badge ${estadoMap[c.estado]||'badge-gray'}">${c.estado}</span></td>
+      <td>
+        <div class="flex gap-1">
+          <button class="btn btn-sm btn-secondary" onclick="verColab(${c.id})">Ver</button>
+          <button class="btn btn-sm btn-secondary" onclick="editColab(${c.id})">Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteColab(${c.id})">Baja</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openColabModal(editing=null){
+  editingColabId=editing;
+  document.getElementById('modal-colab-title').textContent=editing?'Editar Colaborador':'Nuevo Colaborador';
+  if(editing){
+    const c=colaboradores.find(x=>x.id===editing);
+    document.getElementById('ci-nombre').value=c.nombre;
+    document.getElementById('ci-rut').value=c.rut;
+    document.getElementById('ci-email').value=c.email;
+    document.getElementById('ci-pais').value=c.pais;
+    document.getElementById('ci-ingreso').value=c.ingreso;
+    document.getElementById('ci-rol').value=c.rol;
+    document.getElementById('ci-seniority').value=c.seniority;
+    document.getElementById('ci-sueldo').value=c.sueldo;
+    document.getElementById('ci-tarifa').value=c.tarifa;
+    document.getElementById('ci-jornada').value=c.jornada;
+    document.getElementById('ci-cliente').value=c.cliente;
+    document.getElementById('ci-proyecto').value=c.proyecto;
+    document.getElementById('ci-comercial').value=c.comercial;
+  } else {
+    ['ci-nombre','ci-rut','ci-email','ci-tel','ci-sueldo','ci-tarifa','ci-proyecto'].forEach(id=>{document.getElementById(id).value='';});
+  }
+  calcModalMargen();
+  openModal('modal-colab');
+}
+
+function editColab(id){openColabModal(id);}
+
+function saveColab(){
+  const nombre=document.getElementById('ci-nombre').value.trim();
+  const sueldo=parseFloat(document.getElementById('ci-sueldo').value);
+  const tarifa=parseFloat(document.getElementById('ci-tarifa').value);
+  if(!nombre||!sueldo||!tarifa){toast('Complete los campos requeridos','#dc2626');return;}
+  const data={
+    nombre,rut:document.getElementById('ci-rut').value,email:document.getElementById('ci-email').value,
+    pais:document.getElementById('ci-pais').value,ingreso:document.getElementById('ci-ingreso').value,
+    rol:document.getElementById('ci-rol').value,seniority:document.getElementById('ci-seniority').value,
+    sueldo,tarifa,jornada:parseInt(document.getElementById('ci-jornada').value),
+    cliente:document.getElementById('ci-cliente').value,proyecto:document.getElementById('ci-proyecto').value,
+    comercial:document.getElementById('ci-comercial').value,estado:'Activo'
+  };
+  if(editingColabId){
+    const c=colaboradores.find(x=>x.id===editingColabId);
+    const changed=c.sueldo!==sueldo||c.tarifa!==tarifa||c.jornada!==data.jornada;
+    Object.assign(c,data);
+    if(changed){
+      c.historial.push({fecha:new Date().toISOString().split('T')[0],sueldo,tarifa,jornada:data.jornada,motivo:'Actualización manual'});
+    }
+    toast('Colaborador actualizado correctamente','#16a34a');
+  } else {
+    const newId=Math.max(...colaboradores.map(x=>x.id))+1;
+    colaboradores.push({...data,id:newId,historial:[{fecha:data.ingreso,sueldo,tarifa,jornada:data.jornada,motivo:'Alta inicial'}]});
+    toast('Colaborador dado de alta correctamente','#16a34a');
+  }
+  closeModal('modal-colab');
+  renderColabs();
+}
+
+function deleteColab(id){
+  const c=colaboradores.find(x=>x.id===id);
+  if(!confirm(`¿Confirmar proceso de salida para ${c.nombre}?`)) return;
+  c.estado='En proceso de salida';
+  renderColabs();
+  toast(`${c.nombre} marcado como en proceso de salida`,'#ca8a04');
+}
+
+function verColab(id){
+  const c=colaboradores.find(x=>x.id===id);
+  const m=calcMargen(c);
+  document.getElementById('modal-cd-title').textContent=c.nombre;
+  const content=document.getElementById('modal-cd-content');
+  content.innerHTML=`
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div><div style="font-size:12px;color:#64748b">Rol</div><div style="font-weight:500">${c.rol} · ${c.seniority}</div></div>
+      <div><div style="font-size:12px;color:#64748b">País</div><div style="font-weight:500">${c.pais}</div></div>
+      <div><div style="font-size:12px;color:#64748b">Cliente / Proyecto</div><div style="font-weight:500">${c.cliente} — ${c.proyecto}</div></div>
+      <div><div style="font-size:12px;color:#64748b">Jornada</div><div style="font-weight:500">${c.jornada}%</div></div>
+      <div><div style="font-size:12px;color:#64748b">Sueldo Bruto</div><div style="font-weight:600;font-size:16px">${fmt(c.sueldo)}</div></div>
+      <div><div style="font-size:12px;color:#64748b">Tarifa Cliente</div><div style="font-weight:600;font-size:16px">${fmt(c.tarifa)}</div></div>
+    </div>
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div style="background:#f0fdf4;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:11px;color:#64748b;font-weight:600">MARGEN COMERCIAL</div>
+        <div style="font-size:24px;font-weight:700;color:${m.margenComercial>=35?'#16a34a':m.margenComercial>=30?'#ca8a04':'#dc2626'}">${fmtPct(m.margenComercial)}</div>
+        <div style="font-size:11px;color:#94a3b8">Costo directo: ${fmt(m.costoDirecto)}</div>
+      </div>
+      <div style="background:#eff6ff;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:11px;color:#64748b;font-weight:600">MARGEN OPERACIONAL</div>
+        <div style="font-size:24px;font-weight:700;color:${m.margenOperacional>=20?'#16a34a':m.margenOperacional>=15?'#ca8a04':'#dc2626'}">${fmtPct(m.margenOperacional)}</div>
+        <div style="font-size:11px;color:#94a3b8">Costo total: ${fmt(m.costoTotal)}</div>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">Historial de versiones</div>
+    <table><thead><tr><th>Fecha</th><th>Sueldo</th><th>Tarifa</th><th>Jornada</th><th>Motivo</th></tr></thead>
+    <tbody>${c.historial.map((h,i)=>`<tr style="${i===c.historial.length-1?'background:#eff6ff;':''}" >
+      <td>${h.fecha}</td><td>${fmt(h.sueldo)}</td><td>${fmt(h.tarifa)}</td><td>${h.jornada}%</td>
+      <td>${h.motivo}</td>
+    </tr>`).join('')}</tbody></table>
+  `;
+  openModal('modal-colab-detail');
+}
+
+function calcModalMargen(){
+  const sueldo=parseFloat(document.getElementById('ci-sueldo').value)||0;
+  const tarifa=parseFloat(document.getElementById('ci-tarifa').value)||0;
+  const pais=document.getElementById('ci-pais').value==='Chile'?'CL':'LATAM';
+  const jornada=parseInt(document.getElementById('ci-jornada').value)||100;
+  if(!sueldo||!tarifa){document.getElementById('modal-margen-preview').style.display='none';return;}
+  const m=calcMargen({sueldo,tarifa,pais:pais==='CL'?'Chile':'Colombia',jornada});
+  document.getElementById('modal-margen-preview').style.display='block';
+  document.getElementById('modal-margen-values').innerHTML=`
+    <div><div style="font-size:11px;color:#64748b">Margen Comercial</div><div style="font-size:20px;font-weight:700;color:${m.margenComercial>=35?'#16a34a':m.margenComercial>=30?'#ca8a04':'#dc2626'}">${fmtPct(m.margenComercial)}</div></div>
+    <div><div style="font-size:11px;color:#64748b">Margen Operacional</div><div style="font-size:20px;font-weight:700;color:${m.margenOperacional>=20?'#16a34a':m.margenOperacional>=15?'#ca8a04':'#dc2626'}">${fmtPct(m.margenOperacional)}</div></div>
+  `;
+}
+
+// ==================== PROYECTOS ====================
+
+function renderProyectos(){
+  const grid=document.getElementById('proyectos-grid');
+  grid.innerHTML=proyectos.map(p=>{
+    const colabsEnProyecto=colaboradores.filter(c=>c.proyecto===p.nombre);
+    const margenes=colabsEnProyecto.map(c=>calcMargen(c).margenComercial);
+    const margenProm=margenes.length?margenes.reduce((a,b)=>a+b,0)/margenes.length:0;
+    const facturacionMes=colabsEnProyecto.reduce((a,c)=>a+c.tarifa,0);
+    const alertClass=margenProm>0&&margenProm<p.margenMin?'border-red-300':'';
+    return `<div class="card p-5 ${alertClass}" style="${margenProm>0&&margenProm<p.margenMin?'border-color:#fca5a5;border-width:2px':''}">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <div style="font-weight:600;font-size:15px;color:#0f172a">${p.nombre}</div>
+          <div style="font-size:13px;color:#64748b;margin-top:2px">${p.cliente}</div>
+        </div>
+        ${margenProm>0?margenBadge(margenProm):'<span class="badge badge-gray">Sin asig.</span>'}
+      </div>
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:12px">${p.desc}</div>
+      <div class="grid grid-cols-2 gap-2 mb-3" style="font-size:12px">
+        <div><span style="color:#64748b">Comercial:</span> ${p.comercial}</div>
+        <div><span style="color:#64748b">Colabs:</span> ${colabsEnProyecto.length}</div>
+        <div><span style="color:#64748b">Fact. mes:</span> <strong>${fmt(facturacionMes)}</strong></div>
+        <div><span style="color:#64748b">Mín:</span> ${p.margenMin}%</div>
+      </div>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:12px">
+        ${p.inicio} → ${p.fin}
+      </div>
+      ${colabsEnProyecto.length?`<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">Equipo:</div>
+      ${colabsEnProyecto.map(c=>`<div class="flex items-center justify-between py-1"><span style="font-size:12px">${c.nombre}</span><span style="font-size:11px;color:#64748b">${c.rol.split(' ').slice(-1)}</span></div>`).join('')}`:''}
+      <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+        <button class="btn btn-sm btn-secondary" style="flex:1" onclick="verProyectoDetalle(${p.id})">Ver detalle</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openProyectoModal(){openModal('modal-proyecto');}
+
+function saveProyecto(){
+  const nombre=document.getElementById('pi-nombre').value.trim();
+  const cliente=document.getElementById('pi-cliente').value;
+  if(!nombre){toast('El nombre del proyecto es requerido','#dc2626');return;}
+  const newId=Math.max(...proyectos.map(x=>x.id))+1;
+  proyectos.push({
+    id:newId,nombre,cliente,
+    inicio:document.getElementById('pi-inicio').value,
+    fin:document.getElementById('pi-fin').value,
+    comercial:document.getElementById('pi-comercial').value,
+    margenMin:parseInt(document.getElementById('pi-margen-min').value)||30,
+    desc:document.getElementById('pi-desc').value
+  });
+  closeModal('modal-proyecto');
+  renderProyectos();
+  toast('Proyecto creado correctamente','#16a34a');
+}
+
+function verProyectoDetalle(id){
+  const p=proyectos.find(x=>x.id===id);
+  toast(`Proyecto: ${p.nombre} · ${p.cliente}`,'#1d4ed8');
+}
+
+// ==================== FACTURACIÓN ====================
+
+function renderFacturacion(){
+  const periodo=document.getElementById('fact-period')?.value||'Marzo 2026';
+  const filtered=facturas.filter(f=>f.periodo===periodo);
+
+  // Workflow summary
+  const ws=document.getElementById('workflow-summary');
+  const counts={};
+  ESTADOS_FACTURA.forEach(e=>{counts[e]=0;});
+  filtered.forEach(f=>{if(counts[f.estado]!==undefined)counts[f.estado]++;});
+  const colors={'Borrador':'#64748b','Prefactura':'#1d4ed8','Enviada':'#ca8a04','Con OC':'#9333ea','Con HES':'#ea580c','Facturada':'#16a34a','Pagada':'#059669'};
+  ws.innerHTML=`<div class="flex items-center gap-2">
+    ${ESTADOS_FACTURA.map((e,i)=>`
+      <div style="flex:1;text-align:center;cursor:pointer" onclick="setFactTab('${e}')">
+        <div style="width:36px;height:36px;border-radius:50%;background:${counts[e]?colors[e]:'#e2e8f0'};color:${counts[e]?'#fff':'#94a3b8'};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin:0 auto">${counts[e]||0}</div>
+        <div style="font-size:11px;font-weight:600;color:#374151;margin-top:4px">${e}</div>
+      </div>
+      ${i<ESTADOS_FACTURA.length-1?`<div style="flex:1;height:2px;background:#e2e8f0;margin-bottom:20px"></div>`:''}
+    `).join('')}
+  </div>`;
+
+  // Tabs
+  const tabs=document.getElementById('fact-tabs');
+  const tabOpts=['Todos',...ESTADOS_FACTURA];
+  tabs.innerHTML=tabOpts.map(t=>`<div class="tab ${factTabActivo===t?'active':''}" onclick="setFactTab('${t}')">${t}</div>`).join('');
+
+  // Table
+  const tableData=factTabActivo==='Todos'?filtered:filtered.filter(f=>f.estado===factTabActivo);
+  const tbody=document.getElementById('fact-tbody');
+  if(!tableData.length){tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:32px">No hay facturas en este estado para el período seleccionado</td></tr>`;return;}
+  tbody.innerHTML=tableData.map(f=>`<tr>
+    <td style="font-weight:600;color:#1d4ed8;cursor:pointer" onclick="verFactura('${f.id}')">${f.id}</td>
+    <td><strong>${f.cliente}</strong></td>
+    <td>${f.periodo}</td>
+    <td style="text-align:center">${f.colabs}</td>
+    <td style="font-weight:500">${fmt(f.subtotal)}</td>
+    <td style="${f.ajuste>=0?'color:#16a34a':'color:#dc2626'};font-weight:500">${f.ajuste>=0?'+':''}${fmt(f.ajuste)}</td>
+    <td style="font-weight:700">${fmt(f.subtotal+f.ajuste)}</td>
+    <td>${estadoBadge(f.estado)}</td>
+    <td>
+      <div class="flex gap-1">
+        <button class="btn btn-sm btn-secondary" onclick="verFactura('${f.id}')">Detalle</button>
+        ${getNextAction(f)}
+      </div>
+    </td>
+  </tr>`).join('');
+}
+
+function setFactTab(tab){
+  factTabActivo=tab;
+  renderFacturacion();
+}
+
+function getNextAction(f){
+  const nextMap={
+    'Borrador':'<button class="btn btn-sm btn-primary" onclick="avanzarEstado(\''+f.id+'\')">→ Prefactura</button>',
+    'Prefactura':'<button class="btn btn-sm btn-primary" onclick="avanzarEstado(\''+f.id+'\')">→ Enviar</button>',
+    'Enviada':'<button class="btn btn-sm btn-primary" onclick="avanzarEstado(\''+f.id+'\')">→ Reg. OC</button>',
+    'Con OC':'<button class="btn btn-sm btn-primary" onclick="avanzarEstado(\''+f.id+'\')">→ Reg. HES</button>',
+    'Con HES':'<button class="btn btn-sm btn-primary" onclick="avanzarEstado(\''+f.id+'\')">→ Facturar</button>',
+    'Facturada':'<button class="btn btn-sm btn-primary" onclick="avanzarEstado(\''+f.id+'\')">→ Pago</button>',
+    'Pagada':''
+  };
+  return nextMap[f.estado]||'';
+}
+
+function avanzarEstado(id){
+  const f=facturas.find(x=>x.id===id);
+  const idx=ESTADOS_FACTURA.indexOf(f.estado);
+  if(idx<ESTADOS_FACTURA.length-1){
+    f.estado=ESTADOS_FACTURA[idx+1];
+    toast(`${f.id} → ${f.estado}`,'#16a34a');
+    renderFacturacion();
+  }
+}
+
+function generarPrefacturas(){
+  const borradores=facturas.filter(f=>f.estado==='Borrador'&&f.periodo==='Marzo 2026');
+  borradores.forEach(f=>f.estado='Prefactura');
+  toast(`${borradores.length} prefactura(s) generada(s) correctamente`,'#16a34a');
+  renderFacturacion();
+}
+
+function verFactura(id){
+  const f=facturas.find(x=>x.id===id);
+  const colabsCliente=colaboradores.filter(c=>c.cliente===f.cliente);
+  document.getElementById('modal-factura-title').textContent=`${f.id} — ${f.cliente}`;
+  document.getElementById('modal-factura-content').innerHTML=`
+    <div class="grid grid-cols-3 gap-3 mb-4" style="background:#f8fafc;border-radius:8px;padding:12px">
+      <div><div style="font-size:11px;color:#64748b">Período</div><div style="font-weight:600">${f.periodo}</div></div>
+      <div><div style="font-size:11px;color:#64748b">Estado</div>${estadoBadge(f.estado)}</div>
+      <div><div style="font-size:11px;color:#64748b">Total</div><div style="font-weight:700;font-size:18px">${fmt(f.subtotal+f.ajuste)}</div></div>
+    </div>
+    ${f.oc?`<div class="flex gap-4 mb-3"><span style="font-size:13px;color:#64748b">OC: <strong>${f.oc}</strong></span>${f.hes?`<span style="font-size:13px;color:#64748b">HES: <strong>${f.hes}</strong></span>`:''}</div>`:''}
+    <table class="mb-3"><thead><tr><th>Colaborador</th><th>Rol</th><th>Jornada</th><th>Tarifa</th><th>Días hábiles</th><th>Subtotal</th></tr></thead>
+    <tbody>${colabsCliente.map(c=>`<tr>
+      <td>${c.nombre}</td><td style="font-size:12px">${c.rol}</td>
+      <td>${c.jornada}%</td><td>${fmt(c.tarifa)}</td>
+      <td style="text-align:center">22</td>
+      <td style="font-weight:500">${fmt(c.tarifa)}</td>
+    </tr>`).join('')}
+    <tr style="background:#f8fafc;font-weight:600"><td colspan="5" style="text-align:right">Subtotal</td><td>${fmt(f.subtotal)}</td></tr>
+    ${f.ajuste?`<tr style="background:#f8fafc"><td colspan="5" style="text-align:right;color:${f.ajuste>=0?'#16a34a':'#dc2626'}">Ajuste (${f.notas})</td><td style="color:${f.ajuste>=0?'#16a34a':'#dc2626'};font-weight:600">${f.ajuste>=0?'+':''}${fmt(f.ajuste)}</td></tr>`:''}
+    <tr style="background:#f0f9ff;font-weight:700;font-size:15px"><td colspan="5" style="text-align:right">TOTAL</td><td>${fmt(f.subtotal+f.ajuste)}</td></tr>
+    </tbody></table>
+    ${f.notas?`<div style="font-size:13px;color:#64748b;background:#fffbeb;padding:8px 12px;border-radius:6px;border-left:3px solid #ca8a04">Notas: ${f.notas}</div>`:''}
+  `;
+  document.getElementById('modal-factura-actions').innerHTML=`
+    <button class="btn btn-secondary" onclick="closeModal('modal-factura')">Cerrar</button>
+    ${getNextAction(f)}
+    <button class="btn btn-secondary" onclick="exportReport()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar PDF
+    </button>
+  `;
+  openModal('modal-factura');
+}
+
+function exportFacturas(){toast('Exportando a Excel... (simulado)','#1d4ed8');}
+function exportReport(){toast('Generando reporte... (simulado)','#1d4ed8');}
+
+// ==================== MÁRGENES ====================
+
+function initMargenes(){
+  actualizarCostosModal();
+  calcularMargenes();
+  renderHistorial();
+}
+
+function actualizarCostosModal(){
+  const pais=document.getElementById('calc-pais')?.value||'CL';
+  const ci=COSTOS_INDIRECTOS[pais];
+  const el=document.getElementById('costos-indirectos');
+  if(!el) return;
+  const items=[
+    ['Previsión / Pensiones', (ci.prevision*100).toFixed(1)+'%'],
+    ['Seguro de Cesantía / Desempleo', (ci.seguro_cesantia*100).toFixed(1)+'%'],
+    ['Mutual / ART / Riesgos', (ci.mutual*100).toFixed(1)+'%'],
+    ['Overhead Administración', (ci.overhead_admin*100).toFixed(1)+'%'],
+    ['Overhead Ventas / Comercial', (ci.overhead_venta*100).toFixed(1)+'%'],
+  ];
+  el.innerHTML=items.map(([k,v])=>`<div class="flex justify-between py-1 border-b border-slate-100"><span style="font-size:12px;color:#374151">${k}</span><span style="font-size:12px;font-weight:600;color:#374151">${v}</span></div>`).join('');
+}
+
+function calcularMargenes(){
+  const pais=document.getElementById('calc-pais')?.value||'CL';
+  const jornada=document.getElementById('calc-jornada')?.value==='full'?100:parseInt(document.getElementById('calc-jornada')?.value||100);
+  const sueldo=parseFloat(document.getElementById('calc-sueldo')?.value)||0;
+  const tarifa=parseFloat(document.getElementById('calc-tarifa')?.value)||0;
+  const bono=parseFloat(document.getElementById('calc-bono')?.value)||0;
+  const it=parseFloat(document.getElementById('calc-it')?.value)||0;
+  actualizarCostosModal();
+  if(!sueldo||!tarifa){document.getElementById('calc-result').innerHTML='<p style="color:#94a3b8;font-size:14px">Ingrese sueldo y tarifa para calcular</p>';return;}
+  const ci=COSTOS_INDIRECTOS[pais];
+  const jf=jornada/100;
+  const sueldoEf=sueldo*jf;
+  const tarifaEf=tarifa*jf;
+  const cargas=sueldoEf*(ci.prevision+ci.seguro_cesantia+ci.mutual);
+  const costoDirecto=sueldoEf+cargas+bono+it;
+  const mc=((tarifaEf-costoDirecto)/tarifaEf)*100;
+  const overhead=tarifaEf*(ci.overhead_admin+ci.overhead_venta);
+  const costoTotal=costoDirecto+overhead;
+  const mo=((tarifaEf-costoTotal)/tarifaEf)*100;
+
+  document.getElementById('calc-result').innerHTML=`
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div style="background:${mc>=35?'#f0fdf4':mc>=30?'#fffbeb':'#fff5f5'};border-radius:8px;padding:16px;text-align:center">
+        <div style="font-size:11px;font-weight:600;color:#64748b">MARGEN COMERCIAL</div>
+        <div style="font-size:32px;font-weight:800;color:${mc>=35?'#16a34a':mc>=30?'#ca8a04':'#dc2626'}">${fmtPct(mc)}</div>
+        <div style="font-size:11px;color:#94a3b8">Costo Directo: ${fmt(costoDirecto)}/mes</div>
+      </div>
+      <div style="background:${mo>=20?'#eff6ff':mo>=15?'#fffbeb':'#fff5f5'};border-radius:8px;padding:16px;text-align:center">
+        <div style="font-size:11px;font-weight:600;color:#64748b">MARGEN OPERACIONAL</div>
+        <div style="font-size:32px;font-weight:800;color:${mo>=20?'#1d4ed8':mo>=15?'#ca8a04':'#dc2626'}">${fmtPct(mo)}</div>
+        <div style="font-size:11px;color:#94a3b8">Costo Total: ${fmt(costoTotal)}/mes</div>
+      </div>
+    </div>
+    <div style="background:#f8fafc;border-radius:8px;padding:12px">
+      <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:8px">DESGLOSE DE COSTOS</div>
+      ${[
+        ['Sueldo Bruto efectivo',fmt(sueldoEf),''],
+        ['Cargas sociales',fmt(cargas),''],
+        ['Bonos / Beneficios',fmt(bono),''],
+        ['Gastos IT',fmt(it),''],
+        ['Costo Directo Total',fmt(costoDirecto),'font-weight:600'],
+        ['Overhead Admin + Ventas',fmt(overhead),''],
+        ['Costo Total',fmt(costoTotal),'font-weight:700'],
+        ['Tarifa Cliente',fmt(tarifaEf),'font-weight:700;color:#1d4ed8'],
+      ].map(([k,v,s])=>`<div class="flex justify-between py-1 border-b border-slate-100"><span style="font-size:12px;color:#374151">${k}</span><span style="font-size:12px;${s}">${v}</span></div>`).join('')}
+    </div>
+  `;
+
+  const ctx=document.getElementById('chartMargen');
+  if(margenChartRef) margenChartRef.destroy();
+  margenChartRef=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:['Sueldo','Cargas','Bonos+IT','Overhead','Margen Op.'],
+      datasets:[{data:[sueldoEf,cargas,bono+it,overhead,tarifaEf-costoTotal],backgroundColor:['#1d4ed8','#7c3aed','#0891b2','#64748b','#16a34a'],borderRadius:4}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'#f1f5f9'},ticks:{callback:v=>'$'+v}}}}
+  });
+}
+
+function renderHistorial(){
+  const el=document.getElementById('historial-table');
+  const sample=colaboradores.slice(0,3);
+  el.innerHTML=`<table><thead><tr><th>Colaborador</th><th>Fecha cambio</th><th>Sueldo ant.</th><th>Sueldo nuevo</th><th>Tarifa ant.</th><th>Tarifa nueva</th><th>Motivo</th></tr></thead>
+  <tbody>${sample.flatMap(c=>c.historial.slice(-2).map((h,i,arr)=>{
+    const prev=arr[i-1]||arr[0];
+    return `<tr><td style="font-weight:500">${i===0&&arr.length===1?c.nombre:i===arr.length-1?c.nombre:''}</td>
+    <td>${h.fecha}</td>
+    <td style="color:#94a3b8">${i>0?fmt(prev.sueldo):'-'}</td>
+    <td style="font-weight:500">${fmt(h.sueldo)}</td>
+    <td style="color:#94a3b8">${i>0?fmt(prev.tarifa):'-'}</td>
+    <td style="font-weight:500">${fmt(h.tarifa)}</td>
+    <td style="font-size:12px;color:#64748b">${h.motivo}</td></tr>`;
+  })).join('')}</tbody></table>`;
+}
+
+// ==================== REPORTES ====================
+
+function initReportes(){
+  // Seniority
+  const ctx1=document.getElementById('chartSeniority');
+  if(ctx1._chart) ctx1._chart.destroy();
+  ctx1._chart=new Chart(ctx1,{type:'bar',data:{
+    labels:['Junior','Semi-Senior','Senior','Lead'],
+    datasets:[
+      {label:'M. Comercial %',data:[27.3,32.1,36.8,38.2],backgroundColor:'#1d4ed8',borderRadius:4},
+      {label:'M. Operacional %',data:[15.1,20.4,24.5,26.1],backgroundColor:'#7c3aed',borderRadius:4}
+    ]
+  },options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}},scales:{x:{grid:{display:false}},y:{grid:{color:'#f1f5f9'},ticks:{callback:v=>v+'%'}}}}});
+
+  // Rol
+  const ctx2=document.getElementById('chartRol');
+  if(ctx2._chart) ctx2._chart.destroy();
+  ctx2._chart=new Chart(ctx2,{type:'doughnut',data:{
+    labels:['Arquitecto','Tech Lead','Dev Sr','Dev Semi','Dev Jr','QA','Data Eng','Scrum'],
+    datasets:[{data:[41.2,38.7,35.4,31.2,26.8,33.1,34.8,36.5],backgroundColor:['#1d4ed8','#7c3aed','#0891b2','#059669','#dc2626','#ea580c','#ca8a04','#16a34a'],borderWidth:2,borderColor:'#fff'}]
+  },options:{responsive:true,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}}}});
+
+  // Comercial
+  const ctx3=document.getElementById('chartComercial');
+  if(ctx3._chart) ctx3._chart.destroy();
+  ctx3._chart=new Chart(ctx3,{type:'bar',data:{
+    labels:['R. Salinas','V. Cruz','D. Herrera'],
+    datasets:[
+      {label:'Facturación (K USD)',data:[198,214,89],backgroundColor:'rgba(29,78,216,.2)',borderColor:'#1d4ed8',borderWidth:2,borderRadius:4,yAxisID:'y'},
+      {label:'Margen %',data:[34.1,35.8,33.2],type:'line',borderColor:'#16a34a',backgroundColor:'transparent',borderWidth:2,pointBackgroundColor:'#16a34a',tension:.3,yAxisID:'y1'}
+    ]
+  },options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}},scales:{y:{grid:{color:'#f1f5f9'},ticks:{callback:v=>'$'+v+'K'}},y1:{position:'right',grid:{display:false},ticks:{callback:v=>v+'%'},min:25,max:45}}}});
+}
+
+// ==================== ALERTAS ====================
+
+function renderAlertas(){
+  const el=document.getElementById('alertas-list');
+  el.innerHTML=alertas.map(a=>`<div class="alert-card alert-${a.tipo}" style="${a.leida?'opacity:.6':''}">
+    <div class="flex items-start justify-between">
+      <div class="flex-1">
+        <div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:4px">${a.titulo}</div>
+        <div style="font-size:13px;color:#374151;margin-bottom:6px">${a.desc}</div>
+        <div style="font-size:11px;color:#94a3b8">${a.fecha}</div>
+      </div>
+      <div class="flex items-center gap-2 ml-4">
+        ${!a.leida?`<div style="width:8px;height:8px;border-radius:50%;background:${a.tipo==='red'?'#dc2626':a.tipo==='yellow'?'#ca8a04':'#1d4ed8'}"></div>`:''}
+        <button class="btn btn-sm btn-secondary" onclick="markAlertRead(${a.id})">Marcar leída</button>
+      </div>
+    </div>
+  </div>`).join('');
+}
+
+function markAlertRead(id){
+  const a=alertas.find(x=>x.id===id);
+  if(a) a.leida=true;
+  renderAlertas();
+}
+
+function markAllRead(){
+  alertas.forEach(a=>a.leida=true);
+  renderAlertas();
+  toast('Todas las alertas marcadas como leídas','#16a34a');
+}
+
+// ==================== INIT ====================
+
+initDashboard();
+</script>
+</body>
+</html>
